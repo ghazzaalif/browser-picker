@@ -88,3 +88,10 @@ go run . ../.. ../../assets/icon.ico
 ## License
 
 MIT
+
+## Releasing
+
+Publish a release on GitHub (Releases → Draft a new release → new tag such as
+`v1.0.1` → Publish). The workflow builds both executables and attaches them to
+the release automatically. Every push to `main` also builds them as a
+downloadable workflow artifact.

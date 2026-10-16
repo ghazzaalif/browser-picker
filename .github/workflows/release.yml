@@ -3,8 +3,9 @@ name: Build and release
 on:
   push:
     branches: [main]
-    tags: ["v*"]
   pull_request:
+  release:
+    types: [published]
 
 permissions:
   contents: write
@@ -30,14 +31,8 @@ jobs:
         with:
           name: BrowserPicker
           path: dist/*.exe
-      - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Attach to release
+        if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "$GITHUB_REF_NAME" dist/BrowserPicker.exe dist/BrowserPicker-ARM64.exe \
-            --title "Browser Picker ${GITHUB_REF_NAME#v}" \
-            --notes "- **BrowserPicker.exe**: Windows 10/11 on Intel/AMD PCs
-          - **BrowserPicker-ARM64.exe**: Windows on ARM (e.g. Snapdragon laptops)
-
-          Run it, click **Install and set as default browser**, then choose Browser Picker in Windows Default apps. The app isn't code-signed, so SmartScreen may ask you to click **More info → Run anyway**."
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/BrowserPicker.exe dist/BrowserPicker-ARM64.exe --clobber --repo "$GITHUB_REPOSITORY"
