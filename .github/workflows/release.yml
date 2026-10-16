@@ -1,0 +1,43 @@
+name: Build and release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - name: Test
+        run: go test ./...
+      - name: Vet (Windows)
+        run: GOOS=windows go vet . || true
+      - name: Build
+        run: |
+          mkdir dist
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-H windowsgui -s -w" -o dist/BrowserPicker.exe .
+          GOOS=windows GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -ldflags "-H windowsgui -s -w" -o dist/BrowserPicker-ARM64.exe .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BrowserPicker
+          path: dist/*.exe
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/BrowserPicker.exe dist/BrowserPicker-ARM64.exe \
+            --title "Browser Picker ${GITHUB_REF_NAME#v}" \
+            --notes "- **BrowserPicker.exe**: Windows 10/11 on Intel/AMD PCs
+          - **BrowserPicker-ARM64.exe**: Windows on ARM (e.g. Snapdragon laptops)
+
+          Run it, click **Install and set as default browser**, then choose Browser Picker in Windows Default apps. The app isn't code-signed, so SmartScreen may ask you to click **More info → Run anyway**."
